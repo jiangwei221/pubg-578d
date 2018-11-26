@@ -26,7 +26,10 @@ class Trainer(object):
 
     def __init__(self, opt, model, optimizer, train_loader, val_loader):
         self.cuda = opt.use_cuda
-        self.model = model
+        if self.cuda:
+            self.model = model.cuda()
+        else:
+            self.model = model
         self.optim = optimizer
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -60,7 +63,7 @@ class Trainer(object):
             with torch.no_grad():
                 score = self.model(feat)
             #get loss
-            loss = F.mse_loss(score, target)
+            loss = F.mse_loss(score, target)*1000
             loss_data = loss.data.item()
             if np.isnan(loss_data):
                 exec(util.TEST_EMBEDDING)
@@ -101,7 +104,7 @@ class Trainer(object):
             #forward pass
             score = self.model(feat)
             #get loss
-            loss = F.mse_loss(score, target)
+            loss = F.mse_loss(score, target)*1000
             loss /= len(feat)
             loss_data = loss.data.item()
             if np.isnan(loss_data):

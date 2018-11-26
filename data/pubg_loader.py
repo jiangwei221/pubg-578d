@@ -34,11 +34,15 @@ OUTPUT_KEYS = ['winPlacePerc']
 class PUBGDataset(Dataset):
     def __init__(self, opt, transform=None):
         self.file_path = opt.training_file_path
+        print('reading csv file into pandas dataframe')
         self.raw_data = pd.read_csv(self.file_path)
         self.raw_data.drop(2744604, inplace=True)
         self.init_keys = INIT_KEYS
+        print('pre-processing data')
         self.processed_data = self.feature_normalize(self.raw_data)
+        print('coverting pandas dataframe to numpy array')
         self.np_feat, self.np_target = self.covert_to_np(self.processed_data)
+        print('coverting numpy array to pytorch tensor')
         self.feat = util.to_torch(opt, self.np_feat)
         self.target = util.to_torch(opt, self.np_target)
         self.num_samples = self.np_feat.shape[0]
