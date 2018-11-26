@@ -17,6 +17,8 @@ test data summary:
 1934174 players
 ?? matches
 ?? groups
+
+entry 2744604 contains nan
 '''
 
 import numpy as np
@@ -30,13 +32,24 @@ CAT_KEYS = ['Id', 'groupId', 'matchId', 'matchType']
 OUTPUT_KEYS = ['winPlacePerc']
 
 class PUBGDataset(Dataset):
-    def __init__(self, file_path, transform=None):
-        self.file_path = file_path
-        self.raw_data = pd.read_csv(file_path)
+    def __init__(self, opt, transform=None):
+        self.file_path = opt.training_file_path
+        self.raw_data = pd.read_csv(self.file_path)
+        self.raw_data.drop(2744604, inplace=True)
         self.init_keys = INIT_KEYS
         self.processed_data = self.feature_normalize(self.raw_data)
         self.np_feat, self.np_target = self.covert_to_np(self.processed_data)
-        exec(util.TEST_EMBEDDING)
+        self.feat = util.to_torch(opt, self.np_feat)
+        self.target = util.to_torch(opt, self.np_target)
+        self.num_samples = self.np_feat.shape[0]
+        # exec(util.TEST_EMBEDDING)
+
+    def __len__(self):
+        return self.num_samples
+
+    def __getitem__(self, idx):
+        # exec(util.TEST_EMBEDDING)
+        return {'feat':self.feat[idx], 'target':self.target[idx]}
 
     def feature_normalize(self, pd_dataframe):
         #create playersJoined
@@ -58,7 +71,8 @@ class PUBGDataset(Dataset):
         return pd_dataframe
 
     def covert_to_np(self, pd_dataframe):
-        feat = pd_dataframe.drop(CAT_KEYS+OUTPUT_KEYS, axis=1).as_matrix().astype('float32')
-        target = pd_dataframe[OUTPUT_KEYS].as_matrix().astype('float32')
-
+        # exec(util.TEST_EMBEDDING)
+        feat = pd_dataframe.drop(CAT_KEYS+OUTPUT_KEYS, axis=1).values.astype('float32')
+        target = pd_dataframe[OUTPUT_KEYS].values.astype('float32')
+        assert(feat.shape[0] == target.shape[0])
         return feat, target
