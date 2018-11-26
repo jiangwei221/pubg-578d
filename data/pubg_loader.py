@@ -86,3 +86,56 @@ class PUBGDataset(Dataset):
         target = pd_dataframe[OUTPUT_KEYS].values.astype('float32')
         assert(feat.shape[0] == target.shape[0])
         return feat, target
+
+
+class PUBGInferDataset(Dataset):
+    def __init__(self, opt, transform=None):
+        self.model = opt.model
+        self.file_path = opt.testing_file_path
+        print('reading csv file into pandas dataframe')
+        self.raw_data = pd.read_csv(self.file_path)
+        self.init_keys = INIT_KEYS
+        print('pre-processing data')
+        self.processed_data = self.feature_normalize(self.raw_data)
+        print('coverting pandas dataframe to numpy array')
+        self.np_feat = self.covert_to_np(self.processed_data)
+        print('coverting numpy array to pytorch tensor')
+        self.feat = util.to_torch(opt, self.np_feat)
+        self.num_samples = self.np_feat.shape[0]
+        # exec(util.TEST_EMBEDDING)
+
+    def __len__(self):
+        return self.num_samples
+
+    def __getitem__(self, idx):
+        # exec(util.TEST_EMBEDDING)
+        if self.model == 'reg':
+            return {'feat':self.feat[idx]}
+        elif self.model == 'ae':
+            return {'feat':self.feat[idx]}
+        else:
+            raise RuntimeError('unknown model type')
+
+    def feature_normalize(self, pd_dataframe):
+        #create playersJoined
+        pd_dataframe['playersJoined'] = pd_dataframe.groupby('matchId')['matchId'].transform('count')
+
+        #how many teamates
+        pd_dataframe['numTeammates'] = pd_dataframe.groupby('groupId')['Id'].transform('nunique')
+
+        #how many groups in the match
+        pd_dataframe['numGroups'] = pd_dataframe.groupby('matchId')['groupId'].transform('nunique')
+
+        #create normalized features based on playersJoined
+        pd_dataframe['killsNorm'] = pd_dataframe['kills']*((100-pd_dataframe['playersJoined'])/100 + 1)
+        pd_dataframe['damageDealtNorm'] = pd_dataframe['damageDealt']*((100-pd_dataframe['playersJoined'])/100 + 1)
+
+        #one-hot encoding for matchType
+        pd_dataframe = pd.concat([pd_dataframe, pd.get_dummies(pd_dataframe['matchType'], prefix='matchType')],axis=1)
+
+        return pd_dataframe
+
+    def covert_to_np(self, pd_dataframe):
+        # exec(util.TEST_EMBEDDING)
+        feat = pd_dataframe.drop(CAT_KEYS, axis=1).values.astype('float32')
+        return feat

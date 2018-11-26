@@ -10,7 +10,7 @@ from trainer import trainer
 
 def main():
     opt = options.set(training=False)
-    pubg_data = data.PUBGDataset(opt)
+    pubg_data = data.PUBGInferDataset(opt)
     TRAIN_LEN = len(pubg_data)
     # exec(util.TEST_EMBEDDING)
 
@@ -20,8 +20,12 @@ def main():
     state_dict = torch.load('test_weights.npy')
     pubg_reg.load_state_dict(state_dict)
 
-    exec(util.TEST_EMBEDDING)
-    
+    result = []
+    for i, data_dict in enumerate(pubg_data):
+        place = pubg_reg(data_dict['feat']).item()
+        print(place)
+        result += [place]
 
+    exec(util.TEST_EMBEDDING)
 if __name__=='__main__':
     main()
