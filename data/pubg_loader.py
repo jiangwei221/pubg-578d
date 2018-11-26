@@ -61,6 +61,10 @@ class PUBGDataset(Dataset):
         else:
             raise RuntimeError('unknown model type')
 
+    def normalize_one_feat(self, pd_dataframe, feat_name):
+        feat_norm_name = feat_name+'Norm'
+        # pd_dataframe[feat_norm_name] = pd_dataframe[feat_name]*((100-pd_dataframe['playersJoined'])/100 + 1)
+
     def feature_normalize(self, pd_dataframe):
         #create playersJoined
         pd_dataframe['playersJoined'] = pd_dataframe.groupby('matchId')['matchId'].transform('count')
@@ -72,8 +76,16 @@ class PUBGDataset(Dataset):
         pd_dataframe['numGroups'] = pd_dataframe.groupby('matchId')['groupId'].transform('nunique')
 
         #create normalized features based on playersJoined
-        pd_dataframe['killsNorm'] = pd_dataframe['kills']*((100-pd_dataframe['playersJoined'])/100 + 1)
-        pd_dataframe['damageDealtNorm'] = pd_dataframe['damageDealt']*((100-pd_dataframe['playersJoined'])/100 + 1)
+        exec(util.TEST_EMBEDDING)
+        self.normalize_one_feat(pd_dataframe, 'kills')
+        self.normalize_one_feat(pd_dataframe, 'damageDealt')
+        # pd_dataframe['killsNorm'] = pd_dataframe['kills']*((100-pd_dataframe['playersJoined'])/100 + 1)
+        # pd_dataframe['damageDealtNorm'] = pd_dataframe['damageDealt']*((100-pd_dataframe['playersJoined'])/100 + 1)
+
+        #normalize some big values
+        pd_dataframe['headshotNorm'] = (pd_dataframe.headshotKills - pd_dataframe.headshotKills.min()) / (pd_dataframe.headshotKills.max() - pd_dataframe.headshotKills.min())*((100-pd_dataframe['playersJoined'])/100 + 1) 
+        pd_dataframe['damageNorm'] = (pd_dataframe.damageDealt - pd_dataframe.damageDealt.min()) / (pd_dataframe.damageDealt.max() - pd_dataframe.damageDealt.min())*((100-pd_dataframe['playersJoined'])/100 + 1)
+        pd_dataframe['killsNorm'] = (pd_dataframe.killStreaks - pd_dataframe.killStreaks.min()) / (pd_dataframe.killStreaks.max() - pd_dataframe.killStreaks.min())*((100-pd_dataframe['playersJoined'])/100 + 1)
 
         #one-hot encoding for matchType
         pd_dataframe = pd.concat([pd_dataframe, pd.get_dummies(pd_dataframe['matchType'], prefix='matchType')],axis=1)
