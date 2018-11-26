@@ -10,6 +10,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 from models import PUBGBase
+import torch.nn.functional as F
 
 class PUBGSimpleRegressor(nn.Module):
     def __init__(self, opt):
@@ -19,4 +20,4 @@ class PUBGSimpleRegressor(nn.Module):
         self.regressor = PUBGBase(opt)
 
     def forward(self, x):
-        return self.regressor(x)
+        return F.sigmoid(self.regressor(x))

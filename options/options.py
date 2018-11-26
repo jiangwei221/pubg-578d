@@ -18,7 +18,7 @@ def set(training):
         parser.add_argument('--training_file_path', type=str, default='./dataset/train_V2.csv', help='training file location')
         parser.add_argument('--lr_classifier', type=float, default=1e-2, help='classifier learning rate')
         parser.add_argument('--batch_size', type=int, default=32, help='batch size for training')
-        parser.add_argument('--max_iter', type=int, default=20000, help='total training iterations')
+        parser.add_argument('--max_iter', type=int, default=200000, help='total training iterations')
         parser.add_argument('--valid_iter', type=int, default=1000, help='iterval of validation')
         parser.add_argument('--out', type=str, default='./out/out-'+util.get_readable_cur_time(), help='training log')
     else:

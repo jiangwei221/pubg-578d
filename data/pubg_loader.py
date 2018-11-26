@@ -33,6 +33,7 @@ OUTPUT_KEYS = ['winPlacePerc']
 
 class PUBGDataset(Dataset):
     def __init__(self, opt, transform=None):
+        self.model = opt.model
         self.file_path = opt.training_file_path
         print('reading csv file into pandas dataframe')
         self.raw_data = pd.read_csv(self.file_path)
@@ -53,7 +54,12 @@ class PUBGDataset(Dataset):
 
     def __getitem__(self, idx):
         # exec(util.TEST_EMBEDDING)
-        return {'feat':self.feat[idx], 'target':self.target[idx]}
+        if self.model == 'reg':
+            return {'feat':self.feat[idx], 'target':self.target[idx]}
+        elif self.model == 'ae':
+            return {'feat':self.feat[idx], 'target':self.feat[idx]}
+        else:
+            raise RuntimeError('unknown model type')
 
     def feature_normalize(self, pd_dataframe):
         #create playersJoined
