@@ -25,6 +25,7 @@ from tensorboardX import SummaryWriter
 class Trainer(object):
 
     def __init__(self, opt, model, optimizer, train_loader, val_loader):
+        self.opt = opt
         self.cuda = opt.use_cuda
         if self.cuda:
             self.model = model.cuda()
@@ -79,7 +80,7 @@ class Trainer(object):
                 log = [self.epoch, self.iteration] + [val_loss]
                 log = map(str, log)
                 f.write(','.join(log) + '\n')
-        
+        util.save_model(self.opt, self.model, self.iteration)
         if training:
             self.model.train()
 

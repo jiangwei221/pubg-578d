@@ -32,4 +32,8 @@ def to_numpy(opt, cudavar):
 
 import time
 def get_readable_cur_time():
-    return time.ctime().replace(" ", "-")
+    return time.ctime().replace(' ', '-')
+
+import os.path as osp
+def save_model(opt, model, it):
+	torch.save(model.state_dict(), osp.join(opt.out, 'models_{0}_{1}.npy'.format(opt.model, it)))

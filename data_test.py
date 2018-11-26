@@ -22,8 +22,8 @@ def main():
     pubg_valid_loader = DataLoader(pubg_data, batch_size=32, num_workers=0, sampler=SubsetRandomSampler(valid_indices))
     
     #model
-    # pubg_reg = models.PUBGSimpleRegressor(opt)
-    pubg_reg = models.PUBGSimpleAE(opt)
+    pubg_reg = models.PUBGSimpleRegressor(opt)
+    # pubg_reg = models.PUBGSimpleAE(opt)
 
     #optimizer
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, pubg_reg.parameters()), lr=opt.lr_classifier)
