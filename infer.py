@@ -25,7 +25,10 @@ def main():
         place = pubg_reg(data_dict['feat']).item()
         print(place)
         result += [place]
-
-    exec(util.TEST_EMBEDDING)
+    
+    import numpy as np 
+    aa = np.array(result)
+    np.savetxt('test.out', aa, delimiter=',', fmt='%f')
+    # exec(util.TEST_EMBEDDING)
 if __name__=='__main__':
     main()

@@ -20,8 +20,8 @@ class PUBGBase(nn.Module):
             nn.Linear(self.in_dim, 64), nn.LeakyReLU(),
             nn.Linear(64, 128), nn.LeakyReLU(),
             nn.Linear(128, 64), nn.LeakyReLU(),
-            nn.Linear(64, 16), nn.LeakyReLU(),
-            nn.Linear(16, self.out_dim)
+            nn.Linear(64, 10), nn.LeakyReLU(),
+            nn.Linear(10, self.out_dim)
         )
 
     def forward(self, x):

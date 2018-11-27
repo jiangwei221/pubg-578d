@@ -19,4 +19,4 @@ class PUBGSimpleRegressor(nn.Module):
         self.regressor = PUBGBase(opt)
 
     def forward(self, x):
-        return torch.sigmoid(self.regressor(x))
+        return torch.nn.functional.hardtanh(self.regressor(x), min_val=0., max_val=1.)

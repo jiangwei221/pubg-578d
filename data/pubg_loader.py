@@ -30,6 +30,7 @@ from util import util
 INIT_KEYS = ['Id', 'groupId', 'matchId', 'assists', 'boosts', 'damageDealt', 'DBNOs', 'headshotKills', 'heals', 'killPlace', 'killPoints', 'kills', 'killStreaks', 'longestKill', 'matchDuration', 'matchType', 'maxPlace','numGroups', 'rankPoints', 'revives', 'rideDistance', 'roadKills', 'swimDistance', 'teamKills', 'vehicleDestroys', 'walkDistance', 'weaponsAcquired', 'winPoints', 'winPlacePerc']
 CAT_KEYS = ['Id', 'groupId', 'matchId', 'matchType']
 OUTPUT_KEYS = ['winPlacePerc']
+DISCARD_KEYS = ['matchDuration', 'rankPoints']
 
 class PUBGDataset(Dataset):
     def __init__(self, opt, transform=None):
@@ -39,6 +40,7 @@ class PUBGDataset(Dataset):
         self.raw_data = pd.read_csv(self.file_path)
         self.raw_data.drop(2744604, inplace=True)
         self.init_keys = INIT_KEYS
+        exec(util.TEST_EMBEDDING)
         print('pre-processing data')
         self.processed_data = self.feature_normalize(self.raw_data)
         print('coverting pandas dataframe to numpy array')
@@ -65,6 +67,7 @@ class PUBGDataset(Dataset):
         feat_norm_name = feat_name+'Norm'
         # pd_dataframe[feat_norm_name] = pd_dataframe[feat_name]*((100-pd_dataframe['playersJoined'])/100 + 1)
 
+
     def feature_normalize(self, pd_dataframe):
         #create playersJoined
         pd_dataframe['playersJoined'] = pd_dataframe.groupby('matchId')['matchId'].transform('count')
@@ -73,19 +76,39 @@ class PUBGDataset(Dataset):
         pd_dataframe['numTeammates'] = pd_dataframe.groupby('groupId')['Id'].transform('nunique')
 
         #how many groups in the match
-        pd_dataframe['numGroups'] = pd_dataframe.groupby('matchId')['groupId'].transform('nunique')
+        # pd_dataframe['numGroups_2'] = pd_dataframe.groupby('matchId')['groupId'].transform('nunique')
+        # exec(util.TEST_EMBEDDING)
+        pd_dataframe['totalDistance'] = (
+            pd_dataframe['rideDistance'] +
+            pd_dataframe["walkDistance"] +
+            pd_dataframe["swimDistance"]
+        )
+        pd_dataframe['headshotrate'] = pd_dataframe['kills'] / pd_dataframe['headshotKills']
+        pd_dataframe['killStreakrate'] = pd_dataframe['killStreaks'] / pd_dataframe['kills']
+        pd_dataframe['healthitems'] = pd_dataframe['heals'] + pd_dataframe['boosts']
+        pd_dataframe['killPlace_over_maxPlace'] = pd_dataframe['killPlace'] / pd_dataframe['maxPlace']
+        pd_dataframe['headshotKills_over_kills'] = pd_dataframe['headshotKills'] / pd_dataframe['kills']
+        pd_dataframe['distance_over_weapons'] = pd_dataframe['totalDistance'] / pd_dataframe['weaponsAcquired']
+        pd_dataframe['walkDistance_over_heals'] = pd_dataframe['walkDistance'] / pd_dataframe['heals']
+        pd_dataframe['walkDistance_over_kills'] = pd_dataframe['walkDistance'] / pd_dataframe['kills']
+        pd_dataframe['killsPerWalkDistance'] = pd_dataframe['kills'] / pd_dataframe['walkDistance']
+        pd_dataframe["skill"] = pd_dataframe["headshotKills"]+pd_dataframe["roadKills"]
+
+        pd_dataframe[pd_dataframe == np.Inf] = np.NaN
+        pd_dataframe[pd_dataframe == np.NINF] = np.NaN
+        pd_dataframe.fillna(0, inplace=True)
 
         #create normalized features based on playersJoined
-        exec(util.TEST_EMBEDDING)
-        self.normalize_one_feat(pd_dataframe, 'kills')
-        self.normalize_one_feat(pd_dataframe, 'damageDealt')
+        # exec(util.TEST_EMBEDDING)
+        # self.normalize_one_feat(pd_dataframe, 'kills')
+        # self.normalize_one_feat(pd_dataframe, 'damageDealt')
         # pd_dataframe['killsNorm'] = pd_dataframe['kills']*((100-pd_dataframe['playersJoined'])/100 + 1)
         # pd_dataframe['damageDealtNorm'] = pd_dataframe['damageDealt']*((100-pd_dataframe['playersJoined'])/100 + 1)
 
         #normalize some big values
-        pd_dataframe['headshotNorm'] = (pd_dataframe.headshotKills - pd_dataframe.headshotKills.min()) / (pd_dataframe.headshotKills.max() - pd_dataframe.headshotKills.min())*((100-pd_dataframe['playersJoined'])/100 + 1) 
-        pd_dataframe['damageNorm'] = (pd_dataframe.damageDealt - pd_dataframe.damageDealt.min()) / (pd_dataframe.damageDealt.max() - pd_dataframe.damageDealt.min())*((100-pd_dataframe['playersJoined'])/100 + 1)
-        pd_dataframe['killsNorm'] = (pd_dataframe.killStreaks - pd_dataframe.killStreaks.min()) / (pd_dataframe.killStreaks.max() - pd_dataframe.killStreaks.min())*((100-pd_dataframe['playersJoined'])/100 + 1)
+        # pd_dataframe['headshotNorm'] = (pd_dataframe.headshotKills - pd_dataframe.headshotKills.min()) / (pd_dataframe.headshotKills.max() - pd_dataframe.headshotKills.min())*((100-pd_dataframe['playersJoined'])/100 + 1) 
+        # pd_dataframe['damageNorm'] = (pd_dataframe.damageDealt - pd_dataframe.damageDealt.min()) / (pd_dataframe.damageDealt.max() - pd_dataframe.damageDealt.min())*((100-pd_dataframe['playersJoined'])/100 + 1)
+        # pd_dataframe['killsNorm'] = (pd_dataframe.killStreaks - pd_dataframe.killStreaks.min()) / (pd_dataframe.killStreaks.max() - pd_dataframe.killStreaks.min())*((100-pd_dataframe['playersJoined'])/100 + 1)
 
         #one-hot encoding for matchType
         pd_dataframe = pd.concat([pd_dataframe, pd.get_dummies(pd_dataframe['matchType'], prefix='matchType')],axis=1)
@@ -94,7 +117,7 @@ class PUBGDataset(Dataset):
 
     def covert_to_np(self, pd_dataframe):
         # exec(util.TEST_EMBEDDING)
-        feat = pd_dataframe.drop(CAT_KEYS+OUTPUT_KEYS, axis=1).values.astype('float32')
+        feat = pd_dataframe.drop(CAT_KEYS+OUTPUT_KEYS+DISCARD_KEYS, axis=1).values.astype('float32')
         target = pd_dataframe[OUTPUT_KEYS].values.astype('float32')
         assert(feat.shape[0] == target.shape[0])
         return feat, target
@@ -107,6 +130,7 @@ class PUBGInferDataset(Dataset):
         print('reading csv file into pandas dataframe')
         self.raw_data = pd.read_csv(self.file_path)
         self.init_keys = INIT_KEYS
+        exec(util.TEST_EMBEDDING)
         print('pre-processing data')
         self.processed_data = self.feature_normalize(self.raw_data)
         print('coverting pandas dataframe to numpy array')
@@ -138,9 +162,37 @@ class PUBGInferDataset(Dataset):
         #how many groups in the match
         pd_dataframe['numGroups'] = pd_dataframe.groupby('matchId')['groupId'].transform('nunique')
 
+        pd_dataframe['totalDistance'] = (
+            pd_dataframe['rideDistance'] +
+            pd_dataframe["walkDistance"] +
+            pd_dataframe["swimDistance"]
+        )
+        pd_dataframe['headshotrate'] = pd_dataframe['kills'] / pd_dataframe['headshotKills']
+        pd_dataframe['killStreakrate'] = pd_dataframe['killStreaks'] / pd_dataframe['kills']
+        pd_dataframe['healthitems'] = pd_dataframe['heals'] + pd_dataframe['boosts']
+        pd_dataframe['killPlace_over_maxPlace'] = pd_dataframe['killPlace'] / pd_dataframe['maxPlace']
+        pd_dataframe['headshotKills_over_kills'] = pd_dataframe['headshotKills'] / pd_dataframe['kills']
+        pd_dataframe['distance_over_weapons'] = pd_dataframe['totalDistance'] / pd_dataframe['weaponsAcquired']
+        pd_dataframe['walkDistance_over_heals'] = pd_dataframe['walkDistance'] / pd_dataframe['heals']
+        pd_dataframe['walkDistance_over_kills'] = pd_dataframe['walkDistance'] / pd_dataframe['kills']
+        pd_dataframe['killsPerWalkDistance'] = pd_dataframe['kills'] / pd_dataframe['walkDistance']
+        pd_dataframe["skill"] = pd_dataframe["headshotKills"]+pd_dataframe["roadKills"]
+
+        pd_dataframe[pd_dataframe == np.Inf] = np.NaN
+        pd_dataframe[pd_dataframe == np.NINF] = np.NaN
+        pd_dataframe.fillna(0, inplace=True)
+
         #create normalized features based on playersJoined
-        pd_dataframe['killsNorm'] = pd_dataframe['kills']*((100-pd_dataframe['playersJoined'])/100 + 1)
-        pd_dataframe['damageDealtNorm'] = pd_dataframe['damageDealt']*((100-pd_dataframe['playersJoined'])/100 + 1)
+        # exec(util.TEST_EMBEDDING)
+        # self.normalize_one_feat(pd_dataframe, 'kills')
+        # self.normalize_one_feat(pd_dataframe, 'damageDealt')
+        # pd_dataframe['killsNorm'] = pd_dataframe['kills']*((100-pd_dataframe['playersJoined'])/100 + 1)
+        # pd_dataframe['damageDealtNorm'] = pd_dataframe['damageDealt']*((100-pd_dataframe['playersJoined'])/100 + 1)
+
+        #normalize some big values
+        # pd_dataframe['headshotNorm'] = (pd_dataframe.headshotKills - pd_dataframe.headshotKills.min()) / (pd_dataframe.headshotKills.max() - pd_dataframe.headshotKills.min())*((100-pd_dataframe['playersJoined'])/100 + 1) 
+        # pd_dataframe['damageNorm'] = (pd_dataframe.damageDealt - pd_dataframe.damageDealt.min()) / (pd_dataframe.damageDealt.max() - pd_dataframe.damageDealt.min())*((100-pd_dataframe['playersJoined'])/100 + 1)
+        # pd_dataframe['killsNorm'] = (pd_dataframe.killStreaks - pd_dataframe.killStreaks.min()) / (pd_dataframe.killStreaks.max() - pd_dataframe.killStreaks.min())*((100-pd_dataframe['playersJoined'])/100 + 1)
 
         #one-hot encoding for matchType
         pd_dataframe = pd.concat([pd_dataframe, pd.get_dummies(pd_dataframe['matchType'], prefix='matchType')],axis=1)
