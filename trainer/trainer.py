@@ -65,20 +65,21 @@ class Trainer(object):
                 score = self.model(feat)
             #get loss
             if self.opt.model=='reg':
-                loss = F.mse_loss(score, target)*1000
+                loss = F.mse_loss(score, target)
             elif self.opt.model=='ae':
-                huge_index = torch.abs(target) > 10
-                small_index = torch.abs(target) < 10
-                loss_1 = F.mse_loss(score[small_index], target[small_index])*1000
-                diff = (target[huge_index] - score[huge_index]) / target[huge_index]
-                # diff = (target - score) / target
-                loss_2 = F.mse_loss(diff, torch.zeros(diff.shape))*1000
-                loss = loss_1+loss_2
+                loss = F.mse_loss(score, target)
+                # huge_index = torch.abs(target) > 10
+                # small_index = torch.abs(target) < 10
+                # loss_1 = F.mse_loss(score[small_index], target[small_index])
+                # diff = (target[huge_index] - score[huge_index]) / target[huge_index]
+                # # diff = (target - score) / target
+                # loss_2 = F.mse_loss(diff, torch.zeros(diff.shape).cuda())
+                # loss = loss_1+loss_2
             loss_data = loss.data.item()
             if np.isnan(loss_data):
                 exec(util.TEST_EMBEDDING)
                 raise ValueError('loss is nan while validating')
-            val_loss += loss_data / len(feat)
+            val_loss += loss_data
 
         val_loss /= len(self.val_loader)
 
@@ -115,16 +116,18 @@ class Trainer(object):
             score = self.model(feat)
             #get loss
             if self.opt.model=='reg':
-                loss = F.mse_loss(score, target)*1000
+                loss = F.mse_loss(score, target)
             elif self.opt.model=='ae':
-                huge_index = torch.abs(target) > 10
-                small_index = torch.abs(target) < 10
-                loss_1 = F.mse_loss(score[small_index], target[small_index])*1000
-                diff = (target[huge_index] - score[huge_index]) / target[huge_index]
-                # diff = (target - score) / target
-                loss_2 = F.mse_loss(diff, torch.zeros(diff.shape))*1000
-                loss = loss_1+loss_2
-            loss /= len(feat)
+                loss = F.mse_loss(score, target)
+                # huge_index = torch.abs(target) > 10
+                # small_index = torch.abs(target) < 10
+                # loss_1 = F.mse_loss(score[small_index], target[small_index])
+                # diff = (target[huge_index] - score[huge_index]) / target[huge_index]
+                # # diff = (target - score) / target
+                # loss_2 = F.mse_loss(diff, torch.zeros(diff.shape).cuda())
+                # loss = loss_1+loss_2
+            # exec(util.TEST_EMBEDDING)
+            # loss /= len(feat)
             loss_data = loss.data.item()
             if np.isnan(loss_data):
                 exec(util.TEST_EMBEDDING)

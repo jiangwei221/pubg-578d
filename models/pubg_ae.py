@@ -19,4 +19,4 @@ class PUBGSimpleAE(nn.Module):
         self.ae = PUBGBase(opt)
 
     def forward(self, x):
-        return self.ae(x)
+        return torch.nn.functional.relu(self.ae(x))

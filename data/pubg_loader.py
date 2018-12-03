@@ -30,7 +30,7 @@ from util import util
 INIT_KEYS = ['Id', 'groupId', 'matchId', 'assists', 'boosts', 'damageDealt', 'DBNOs', 'headshotKills', 'heals', 'killPlace', 'killPoints', 'kills', 'killStreaks', 'longestKill', 'matchDuration', 'matchType', 'maxPlace','numGroups', 'rankPoints', 'revives', 'rideDistance', 'roadKills', 'swimDistance', 'teamKills', 'vehicleDestroys', 'walkDistance', 'weaponsAcquired', 'winPoints', 'winPlacePerc']
 CAT_KEYS = ['Id', 'groupId', 'matchId', 'matchType']
 OUTPUT_KEYS = ['winPlacePerc']
-DISCARD_KEYS = ['matchDuration', 'rankPoints']
+DISCARD_KEYS = ['matchDuration', 'rankPoints', 'maxPlace', 'winPoints', 'killPoints']
 
 class PUBGDataset(Dataset):
     def __init__(self, opt, transform=None):
@@ -38,7 +38,7 @@ class PUBGDataset(Dataset):
         self.file_path = opt.training_file_path
         print('reading csv file into pandas dataframe')
         self.raw_data = pd.read_csv(self.file_path)
-        self.raw_data.drop(2744604, inplace=True)
+        # self.raw_data.drop(2744604, inplace=True)
         self.init_keys = INIT_KEYS
         exec(util.TEST_EMBEDDING)
         print('pre-processing data')
@@ -75,6 +75,28 @@ class PUBGDataset(Dataset):
         #how many teamates
         pd_dataframe['numTeammates'] = pd_dataframe.groupby('groupId')['Id'].transform('nunique')
 
+
+        # pd_dataframe['HeadshotRate'] = pd_dataframe['headshotKills'] / pd_dataframe['kills']
+        # pd_dataframe['AimHack'] = ((pd_dataframe['HeadshotRate'] >= 1) & (pd_dataframe['kills'] >= 8))
+        # # Speed Hacks: They usually give the player a massive speed increase,
+        # # meaning they can go from one side of the map to the other in seconds.
+        # pd_dataframe['totalDistance'] = pd_dataframe['walkDistance']+pd_dataframe['rideDistance']+pd_dataframe['swimDistance']
+        # pd_dataframe['SpeedHack'] = ((pd_dataframe['longestKill'] >= 1000) & (pd_dataframe['kills'] >= 10))
+        # # pd_dataframe[pd_dataframe['SpeedHack'] == True].shape
+        # # Kills without moving Hacks: killed players without moving
+        # pd_dataframe['killsWithoutMoving'] = ((pd_dataframe['kills'] > 0) & (pd_dataframe['totalDistance'] == 0))
+        # # pd_dataframe[pd_dataframe['killsWithoutMoving'] == True].shape
+        # # pd_dataframe.drop(pd_dataframe[pd_dataframe['killsWithoutMoving'] == True].index, inplace=True)
+
+        # # Delete other Hacks: tempararily only weaponHack here
+        # pd_dataframe[pd_dataframe['weaponsAcquired'] >= 50].shape
+        # # pd_dataframe.drop(pd_dataframe[pd_dataframe['weaponsAcquired'] >= 50].index, inplace=True)
+        # pd_dataframe.headshotKills = pd_dataframe.headshotKills * ((100-pd_dataframe['playersJoined'])/100 + 1) 
+        # pd_dataframe.damageDealt = pd_dataframe.headshotKills * ((100-pd_dataframe['playersJoined'])/100 + 1)
+        # pd_dataframe.kills = pd_dataframe.kills * ((100-pd_dataframe['playersJoined'])/100 + 1)
+
+
+        # pd_dataframe.drop(pd_dataframe[pd_dataframe['SpeedHack'] == True].index, inplace=True)
         #how many groups in the match
         # pd_dataframe['numGroups_2'] = pd_dataframe.groupby('matchId')['groupId'].transform('nunique')
         # exec(util.TEST_EMBEDDING)
@@ -93,6 +115,27 @@ class PUBGDataset(Dataset):
         pd_dataframe['walkDistance_over_kills'] = pd_dataframe['walkDistance'] / pd_dataframe['kills']
         pd_dataframe['killsPerWalkDistance'] = pd_dataframe['kills'] / pd_dataframe['walkDistance']
         pd_dataframe["skill"] = pd_dataframe["headshotKills"]+pd_dataframe["roadKills"]
+
+        # # Get a list of the features to be used
+        # features = pd_dataframe.columns.tolist()
+
+        # # Remove some features from the features list :
+        # features.remove("Id")
+        # features.remove("matchId")
+        # features.remove("groupId")
+        # features.remove("matchDuration")
+        # features.remove("matchType")
+        # features.remove("maxPlace")
+        # features.remove("AimHack")
+        # features.remove("SpeedHack")
+        # features.remove("killsWithoutMoving")
+        # features.remove("playersJoined")
+        # features.remove("numTeammates")
+        # features.remove("winPlacePerc")
+
+        # # Normalize each feature
+        # pd_dataframe[features] = (pd_dataframe[features] - pd_dataframe[features].min()) / (pd_dataframe[features].max() - pd_dataframe[features].min())
+        # pd_dataframe[(pd_dataframe['numTeammates'] > 4) == True][features] * 0.5
 
         pd_dataframe[pd_dataframe == np.Inf] = np.NaN
         pd_dataframe[pd_dataframe == np.NINF] = np.NaN
@@ -130,7 +173,7 @@ class PUBGInferDataset(Dataset):
         print('reading csv file into pandas dataframe')
         self.raw_data = pd.read_csv(self.file_path)
         self.init_keys = INIT_KEYS
-        exec(util.TEST_EMBEDDING)
+        # exec(util.TEST_EMBEDDING)
         print('pre-processing data')
         self.processed_data = self.feature_normalize(self.raw_data)
         print('coverting pandas dataframe to numpy array')
@@ -138,6 +181,8 @@ class PUBGInferDataset(Dataset):
         print('coverting numpy array to pytorch tensor')
         self.feat = util.to_torch(opt, self.np_feat)
         self.num_samples = self.np_feat.shape[0]
+        import IPython
+        IPython.embed()
         # exec(util.TEST_EMBEDDING)
 
     def __len__(self):
@@ -159,9 +204,31 @@ class PUBGInferDataset(Dataset):
         #how many teamates
         pd_dataframe['numTeammates'] = pd_dataframe.groupby('groupId')['Id'].transform('nunique')
 
-        #how many groups in the match
-        pd_dataframe['numGroups'] = pd_dataframe.groupby('matchId')['groupId'].transform('nunique')
 
+        # pd_dataframe['HeadshotRate'] = pd_dataframe['headshotKills'] / pd_dataframe['kills']
+        # pd_dataframe['AimHack'] = ((pd_dataframe['HeadshotRate'] >= 1) & (pd_dataframe['kills'] >= 8))
+        # # Speed Hacks: They usually give the player a massive speed increase,
+        # # meaning they can go from one side of the map to the other in seconds.
+        # pd_dataframe['totalDistance'] = pd_dataframe['walkDistance']+pd_dataframe['rideDistance']+pd_dataframe['swimDistance']
+        # pd_dataframe['SpeedHack'] = ((pd_dataframe['longestKill'] >= 1000) & (pd_dataframe['kills'] >= 10))
+        # # pd_dataframe[pd_dataframe['SpeedHack'] == True].shape
+        # # Kills without moving Hacks: killed players without moving
+        # pd_dataframe['killsWithoutMoving'] = ((pd_dataframe['kills'] > 0) & (pd_dataframe['totalDistance'] == 0))
+        # # pd_dataframe[pd_dataframe['killsWithoutMoving'] == True].shape
+        # # pd_dataframe.drop(pd_dataframe[pd_dataframe['killsWithoutMoving'] == True].index, inplace=True)
+
+        # # Delete other Hacks: tempararily only weaponHack here
+        # pd_dataframe[pd_dataframe['weaponsAcquired'] >= 50].shape
+        # # pd_dataframe.drop(pd_dataframe[pd_dataframe['weaponsAcquired'] >= 50].index, inplace=True)
+        # pd_dataframe.headshotKills = pd_dataframe.headshotKills * ((100-pd_dataframe['playersJoined'])/100 + 1) 
+        # pd_dataframe.damageDealt = pd_dataframe.headshotKills * ((100-pd_dataframe['playersJoined'])/100 + 1)
+        # pd_dataframe.kills = pd_dataframe.kills * ((100-pd_dataframe['playersJoined'])/100 + 1)
+
+
+        # pd_dataframe.drop(pd_dataframe[pd_dataframe['SpeedHack'] == True].index, inplace=True)
+        #how many groups in the match
+        # pd_dataframe['numGroups_2'] = pd_dataframe.groupby('matchId')['groupId'].transform('nunique')
+        # exec(util.TEST_EMBEDDING)
         pd_dataframe['totalDistance'] = (
             pd_dataframe['rideDistance'] +
             pd_dataframe["walkDistance"] +
@@ -177,6 +244,26 @@ class PUBGInferDataset(Dataset):
         pd_dataframe['walkDistance_over_kills'] = pd_dataframe['walkDistance'] / pd_dataframe['kills']
         pd_dataframe['killsPerWalkDistance'] = pd_dataframe['kills'] / pd_dataframe['walkDistance']
         pd_dataframe["skill"] = pd_dataframe["headshotKills"]+pd_dataframe["roadKills"]
+
+        # # Get a list of the features to be used
+        # features = pd_dataframe.columns.tolist()
+
+        # # Remove some features from the features list :
+        # features.remove("Id")
+        # features.remove("matchId")
+        # features.remove("groupId")
+        # features.remove("matchDuration")
+        # features.remove("matchType")
+        # features.remove("maxPlace")
+        # features.remove("AimHack")
+        # features.remove("SpeedHack")
+        # features.remove("killsWithoutMoving")
+        # features.remove("playersJoined")
+        # features.remove("numTeammates")
+
+        # # Normalize each feature
+        # pd_dataframe[features] = (pd_dataframe[features] - pd_dataframe[features].min()) / (pd_dataframe[features].max() - pd_dataframe[features].min())
+        # pd_dataframe[(pd_dataframe['numTeammates'] > 4) == True][features] * 0.5
 
         pd_dataframe[pd_dataframe == np.Inf] = np.NaN
         pd_dataframe[pd_dataframe == np.NINF] = np.NaN
@@ -201,5 +288,5 @@ class PUBGInferDataset(Dataset):
 
     def covert_to_np(self, pd_dataframe):
         # exec(util.TEST_EMBEDDING)
-        feat = pd_dataframe.drop(CAT_KEYS, axis=1).values.astype('float32')
+        feat = pd_dataframe.drop(CAT_KEYS+DISCARD_KEYS, axis=1).values.astype('float32')
         return feat

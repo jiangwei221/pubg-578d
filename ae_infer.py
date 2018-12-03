@@ -28,20 +28,22 @@ def main():
         data_dict = pubg_data[i]
         target = data_dict['feat']
         score = pubg_ae(target)
-        huge_index = torch.abs(target) > 10
-        small_index = torch.abs(target) < 10
-        loss_1 = F.mse_loss(score[small_index], target[small_index])*1000
-        diff = (target[huge_index] - score[huge_index]) / target[huge_index]
-        # diff = (target - score) / target
-        loss_2 = F.mse_loss(diff, torch.zeros(diff.shape))*1000
-        loss = loss_1+loss_2
+        loss = F.mse_loss(score, target)
+        # huge_index = torch.abs(target) > 10
+        # small_index = torch.abs(target) < 10
+        # loss_1 = F.mse_loss(score[small_index], target[small_index])
+        # diff = (target[huge_index] - score[huge_index]) / target[huge_index]
+        # # diff = (target - score) / target
+        # loss_2 = F.mse_loss(diff, torch.zeros(diff.shape))
+        # loss = loss_1+loss_2
         print(i, loss.data.item())
-        if loss>1000:
+        if loss>100:
             result += [[i, loss.data.item()]]
     
     import numpy as np 
     aa = np.array(result)
-    np.savetxt('test.out', aa, delimiter=',', fmt='%f')
+    diffs=aa[:,1]
+
     exec(util.TEST_EMBEDDING)
 if __name__=='__main__':
     main()

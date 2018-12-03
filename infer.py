@@ -19,11 +19,11 @@ def main():
     pubg_reg = models.PUBGSimpleRegressor(opt)
     state_dict = torch.load('test_weights.npy')
     pubg_reg.load_state_dict(state_dict)
-
+    # exec(util.TEST_EMBEDDING)
     result = []
     for i, data_dict in enumerate(pubg_data):
         place = pubg_reg(data_dict['feat']).item()
-        print(place)
+        print(i, place)
         result += [place]
     
     import numpy as np 
